@@ -5,6 +5,12 @@ from pygame import mixer
 mixer.init()
 pygame.init()
 
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Fight Farm")
+
 def load_img(path): return pygame.image.load(path).convert_alpha()
 def anim_load(sprite_sheet, anim_steps, sprt_size, img_scale):
     anim_list = []
@@ -12,12 +18,9 @@ def anim_load(sprite_sheet, anim_steps, sprt_size, img_scale):
         temp_img_list = []
         for x in range(anim):
             temp_img = sprite_sheet.subsurface(x * sprt_size, y * sprt_size, sprt_size, sprt_size)
-            temp_img_list.appeng(pygame.transform.scale(temp_img, (sprt_size * img_scale, sprt_size * img_scale)))
+            temp_img_list.append(pygame.transform.scale(temp_img, (sprt_size * img_scale, sprt_size * img_scale)))
         anim_list.append(temp_img_list)
     return anim_list
-
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
 
 FPS = 60
 
@@ -38,6 +41,8 @@ PATRICK_OFFSET = [36, 28]
 PATRICK_DATA = [PATRICK_SIZE, PATRICK_SCALE, PATRICK_OFFSET]
 FRODO_DATA = PATRICK_DATA
 
+patrick_sheet = load_img("assets/patrick/patrick.png")
+PATRICK_ANIM_STEPS = [5, 1, 5, 6, 6, 3, 7]
 
 class Fighter:
     def __init__(self, fightNum, x, y, flip, data, sprite_sheet, anim_steps, attack_sfx):
@@ -192,7 +197,7 @@ class FighterManager:
         #self.game.sound_player.add_sound("frodo_sfx", 0.5, "assets/frodo_sfx.wav"); frodo_sfx = self.game.sound_player.get_sound("frodo_sfx")
         
         self.fighterL = Fighter(1, 200, 310, False, PATRICK_DATA, patrick_sheet, PATRICK_ANIM_STEPS, None)#patrick_sfx)
-        self.fighterR = Fighter(2, 700, 310, True, FRODO_DATA, frodo_sheet, FRODO_ANIM_STEPS, None)#frodo_sfx)
+        self.fighterR = Fighter(2, 700, 310, True, FRODO_DATA, patrick_sheet, PATRICK_ANIM_STEPS, None)#frodo_sfx)
         self.hbar_width = round((SCREEN_WIDTH * 0.9) / 2)
 
     def draw_health_bar(self, amnt, x, y):
@@ -230,9 +235,8 @@ class SoundPlayer:
         self.sounds[sound_name].play()
 
 class Game:
-    def __init__(self):
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Fight Farm")
+    def __init__(self, screen_):
+        self.screen = screen_
         self.clock = pygame.time.Clock()
         self.sound_player = SoundPlayer()
         self.fight_manager = FighterManager(self)
@@ -258,7 +262,7 @@ class Game:
             pygame.display.update()
 
 
-game = Game()
+game = Game(screen)
 game.run()
 
 pygame.quit()
