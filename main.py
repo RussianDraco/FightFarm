@@ -29,10 +29,18 @@ WHITE = (255, 255, 255)
 SPEED = 10
 GRAVITY = 2
 
-background_img = load_img("assets/background.png")
+
+background_img = load_img("assets/farm.png")
+
+PATRICK_SIZE = 81
+PATRICK_SCALE = 2
+PATRICK_OFFSET = [36, 28]
+PATRICK_DATA = [PATRICK_SIZE, PATRICK_SCALE, PATRICK_OFFSET]
+FRODO_DATA = PATRICK_DATA
+
 
 class Fighter:
-    def __init__(self, fightNum, x, y, flip, data, sprite_sheet, anim_steps):
+    def __init__(self, fightNum, x, y, flip, data, sprite_sheet, anim_steps, attack_sfx):
         self.fighter_num = fightNum
         self.size = data[0]
         self.image_scale = data[1]
@@ -53,6 +61,7 @@ class Fighter:
         self.hit = False
         self.health = 100
         self.alive = True
+        self.attack_sound = attack_sfx
 
     def move(self, screen_width, screen_height, surface, target, is_round_over):
         dx, dy = 0, 0
@@ -138,13 +147,52 @@ class Fighter:
         else:
             self.update_action(0)#0:idle
 
+        anim_cooldown = 50
+        self.image = self.animation_list[self.action][self.frame_index]
+        if pygame.time.get_ticks() - self.update_time > anim_cooldown:
+            self.frame_index += 1
+            self.update_time = pygame.time.get_ticks()
         
+        if self.frame_index >= len(self.animation_list[self.action]):
+            if self.alive == False:
+                self.frame_index = len(self.animation_list[self.action]) - 1
+            else:
+                self.frame_index = 0
+                if self.action == 3 or self.action == 4:
+                    self.attacking = False
+                    self.attack_cooldown = 20
+                if self.action == 5:
+                    self.hit = False
+                    self.attacking = False
+                    self.attack_cooldown = 20
+
+    def attack(self, target):
+        if self.attack_cooldown == 0:
+            self.attacking = True
+            #self.attack_sound.play()
+            attacking_rect = pygame.Rect(self.rect.centerx - (2 * self.rect.width * self.flip), self.rect.y, 2 * self.rect.width, self.rect.height)
+            if attacking_rect.colliderect(target.rect):
+                target.health -= 10
+                target.hit = True
+
+    def update_action(self, new_act):
+        if new_act != self.action:
+            self.action = new_act
+            self.frame_index = 0
+            self.update_time = pygame.time.get_ticks()
+
+    def draw(self, surface):
+        img = pygame.transform.flip(self.image, self.flip, False)
+        surface.blit(img, (self.rect.x - (self.offset[0] * self.image_scale), self.rect.y - (self.offset[1] * self.image_scale)))
 
 class FighterManager:
     def __init__(self, game):
         self.game = game
-        self.fighterL = None
-        self.fighterR = None
+        #self.game.sound_player.add_sound("patrick_sfx", 0.5, "assets/patrick_sfx.wav"); patrick_sfx = self.game.sound_player.get_sound("patrick_sfx")
+        #self.game.sound_player.add_sound("frodo_sfx", 0.5, "assets/frodo_sfx.wav"); frodo_sfx = self.game.sound_player.get_sound("frodo_sfx")
+        
+        self.fighterL = Fighter(1, 200, 310, False, PATRICK_DATA, patrick_sheet, PATRICK_ANIM_STEPS, None)#patrick_sfx)
+        self.fighterR = Fighter(2, 700, 310, True, FRODO_DATA, frodo_sheet, FRODO_ANIM_STEPS, None)#frodo_sfx)
         self.hbar_width = round((SCREEN_WIDTH * 0.9) / 2)
 
     def draw_health_bar(self, amnt, x, y):
@@ -176,6 +224,8 @@ class SoundPlayer:
         new_sound = pygame.mixer.Sound(path)
         new_sound.set_volume(vol)
         self.sounds[sound_name] = new_sound
+    def get_sound(self, sound_name):
+        return self.sounds.get(sound_name)
     def play(self, sound_name):
         self.sounds[sound_name].play()
 
